@@ -10,4 +10,3 @@ What was done here was to understand:
 - how to use custom modes from pre done libs
 - how to create custom modes
 - how create a custom control center having buttons outside to control the modes
-- 
