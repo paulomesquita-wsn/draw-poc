@@ -2,15 +2,11 @@ import * as React from 'react';
 import MapboxDraw, { DrawCustomMode, type DrawFeature } from '@mapbox/mapbox-gl-draw';
 import { useState, useCallback } from 'react';
 import { useControl, useMap, type ControlPosition } from 'react-map-gl';
-import {
-  SnapPolygonMode,
-  SnapPointMode,
-  SnapLineMode,
-} from "mapbox-gl-draw-snap-mode";
 import { Controls } from './DrawControls';
 import { SimpleSelect } from './modes/SimpleSelect';
 import { DirectSelect } from './modes/DirectSelect';
 import { Cut } from './modes/Cut';
+import { DrawLine } from './modes/DrawLine';
 
 type DrawControlProps = ConstructorParameters<typeof MapboxDraw>[0] & {
   position?: ControlPosition;
@@ -47,9 +43,9 @@ export const Draw = () => {
 
   const {current: mapRef} = useMap();
 
-  React.useEffect(()=> {
-    console.log('features', features)
-  }, [features])
+  // React.useEffect(()=> {
+  //   console.log('features', features)
+  // }, [features])
 
   const showMapSources = async() => {
     const map = mapRef.getMap();
@@ -83,9 +79,7 @@ export const Draw = () => {
 
   const modes: { [key: string]: DrawCustomMode } = { 
     ...MapboxDraw.modes,
-    draw_point: SnapPointMode,
-    draw_polygon: SnapPolygonMode,
-    draw_line_string: SnapLineMode,
+    draw_line_string: DrawLine,
     direct_select: DirectSelect,
     simple_select: SimpleSelect,
     cut: Cut
@@ -100,35 +94,14 @@ export const Draw = () => {
         ['==', 'active', 'false'],
         ['==', '$type', 'LineString'],
         ['!=', 'mode', 'static'],
-        ['!=', 'user_isSnapGuide', 'true'],
       ],
       layout: {
         'line-cap': 'round',
         'line-join': 'round',
       },
       paint: {
-        'line-color': '#bccefb',
-        'line-width': 10,
-      },
-    },
-    {
-      id: 'gl-guide-line',
-      type: 'line',
-      filter: [
-        'all',
-        ['==', 'active', 'false'],
-        ['==', '$type', 'LineString'],
-        ['!=', 'mode', 'static'],
-        ['==', 'user_isSnapGuide', 'true'],
-      ],
-      layout: {
-        'line-cap': 'round',
-        'line-join': 'round',
-      },
-      paint: {
-        'line-color': '#cccccc',
-        'line-width': 2,
-        'line-dasharray': [0.2, 2],
+        'line-color': '#04ffce',
+        'line-width': 14,
       },
     },
     {
@@ -145,10 +118,9 @@ export const Draw = () => {
       },
       paint: {
         'line-color': '#04ffce',
-        'line-width': 10,
+        'line-width': 14,
       },
     },
-    // Vertex styles
     // Inactive vertices
     {
       id: 'gl-draw-line-vertex-inactive',
@@ -156,13 +128,14 @@ export const Draw = () => {
       filter: [
         'all',
         ['!=', 'meta', 'midpoint'],
+        // ['!=', 'mode', 'simple_select']
       ],
       paint: {
-        'circle-radius': 4,
+        'circle-radius': 6,
         'circle-color': '#000',
       },
     },
-    // Active vertices
+    // Vertices being moved
     {
       id: 'gl-draw-line-vertex-active',
       type: 'circle',
@@ -173,21 +146,8 @@ export const Draw = () => {
         ['==', 'active', 'true'],
       ],
       paint: {
-        'circle-radius': 6,
+        'circle-radius': 8,
         'circle-color': '#fff', 
-      },
-    },
-    {
-      id: 'gl-draw-midpoint',
-      type: 'circle',
-      filter: [
-        'all',
-        ['==', '$type', 'Point'],
-        ['==', 'meta', 'midpoint'],
-      ],
-      paint: {
-        'circle-radius': 2,
-        'circle-color': '#333', 
       },
     },
   ];

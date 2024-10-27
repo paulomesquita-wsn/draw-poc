@@ -37,7 +37,7 @@ export const Cut: DrawCustomMode = {
     display(geojson);
   },
   onMouseMove: function(state, e) {
-    const features = this.featuresAt(e);
-    this.map.getCanvas().style.cursor = features && features.length ? "crosshair" : "inherit";
+    const featureId = e.featureTarget?.properties.id;
+    this.map.getCanvas().style.cursor = featureId ? "crosshair" : "inherit";
   },
 }

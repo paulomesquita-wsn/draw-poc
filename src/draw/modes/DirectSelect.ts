@@ -1,10 +1,67 @@
 import { DrawCustomMode } from '@mapbox/mapbox-gl-draw';
+import { lineString, nearestPointOnLine, point } from '@turf/turf';
+import type mapboxgl from 'mapbox-gl';
 import { SnapDirectSelect } from "mapbox-gl-draw-snap-mode";
+
+class HoverPoint {
+  map: mapboxgl.Map;
+  coordinate: [number, number] | [];
+  
+  constructor(map: mapboxgl.Map){
+    this.map = map;
+    this.map.addSource('hover-point', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: []
+      }
+    });
+    this.map.addLayer({
+      id: 'hover-point',
+      type: 'circle',
+      source: 'hover-point',
+      paint: {
+        'circle-radius': 4,
+        'circle-color': '#fff',
+        'circle-stroke-width': 4,
+        'circle-stroke-color': '#000000',
+        'circle-stroke-opacity': 0.3,
+      }
+    });
+    this.coordinate = [];
+  }
+
+  set(point: GeoJSON.Feature<GeoJSON.Point> | null){
+    if(point){
+      (this.map.getSource('hover-point') as mapboxgl.GeoJSONSource).setData(point);
+      this.coordinate = point.geometry.coordinates as [number, number];
+    }else{
+      (this.map.getSource('hover-point') as mapboxgl.GeoJSONSource).setData({
+        type: 'FeatureCollection',
+        features: []
+      });
+      this.coordinate = [];
+    }
+  }
+
+  clear(){
+    this.map.removeLayer('hover-point');
+    this.map.removeSource('hover-point');
+    this.coordinate = [];
+  }
+}
+
+type State = {
+  hoverPoint?: HoverPoint;
+  onKeydown: (e: KeyboardEvent) => void;
+  selectedCoordPaths: string[];
+}
 
 export const DirectSelect: DrawCustomMode = {
   ...SnapDirectSelect,
   onSetup: function (opts) {
     const state = SnapDirectSelect.onSetup.call(this, opts);
+    state.hoverPoint = new HoverPoint(this.map);
 
     const deleteFeatureOnKeydown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -16,11 +73,12 @@ export const DirectSelect: DrawCustomMode = {
     };
 
     state.onKeydown = deleteFeatureOnKeydown;
-    window.addEventListener('keydown', state.onKeydown);
+    window.addEventListener('keydown', state.onKeydown);    
 
     return state;
   },
-  onStop: function (state) {
+  onStop: function (state: State) {
+    state.hoverPoint?.clear();
     if (state.onKeydown) {
       window.removeEventListener('keydown', state.onKeydown);
     }
@@ -28,24 +86,65 @@ export const DirectSelect: DrawCustomMode = {
     SnapDirectSelect.onStop.call(this, state);
   },
 
-  onDrag: function (state, e) {
+  onMouseDown(state, e) {
+    console.log('on mouse down', state, e)
+    return SnapDirectSelect.onMouseDown.call(this, state, e);
+  },
+
+  onDrag: function (state: State, e) {
+    if(state.hoverPoint.coordinate) {
+      console.log(e)
+    }
+
     if (state.selectedCoordPaths.length > 0) {
       SnapDirectSelect.onDrag.call(this, state, e);
     }
   },
 
-  onMouseMove: function (state, e) {
+  onMouseMove: function (state: State, e) {
     SnapDirectSelect.onMouseMove.call(this, state, e);
+
+    const featureId = e.featureTarget?.properties.id;
+    const parentId = e.featureTarget?.properties.parent;
+    if(!featureId && !parentId){
+      this.changeMode('simple_select');
+      return;
+    }
+
     const isVertex = e.featureTarget?.properties?.meta === 'vertex';
-    const isMidpoint = e.featureTarget?.properties?.meta === 'midpoint';
     const canvasContainer = this.map.getContainer().querySelector('.mapboxgl-canvas-container.mapboxgl-interactive') as HTMLElement;
     if (canvasContainer) {
-      if (isVertex) {
-        canvasContainer.style.setProperty('cursor', 'move');
-      } else if (isMidpoint) {
-        canvasContainer.style.setProperty('cursor', 'pointer');
-      } else {
-        canvasContainer.style.setProperty('cursor', 'default');
+      canvasContainer.style.setProperty('cursor', isVertex ? 'move' : 'pointer');
+    }
+
+    if(isVertex){
+      state.hoverPoint?.set(null);
+    }else{
+      const line = this.getFeature(featureId);
+      if (line && line.type === 'LineString') {
+        state.hoverPoint?.set(nearestPointOnLine(lineString(line.coordinates), point([e.lngLat.lng, e.lngLat.lat])));
+      }
+    }
+  },
+
+  onClick: function (state: State, e) {
+    console.log('onClick', state, e)
+    const isVertex = e.featureTarget?.properties?.meta === 'vertex';
+
+    if (isVertex) {
+      const featureId = e.featureTarget.properties.parent || e.featureTarget.properties.id;
+      const vertexIndex = parseInt(e.featureTarget.properties.coord_path.split('.').pop(), 10);
+      const lineFeature = this.getFeature(featureId);
+  
+      if (lineFeature && lineFeature.type === 'LineString') {
+        const isEndpoint = vertexIndex === 0 || vertexIndex === lineFeature.coordinates.length - 1;
+  
+        if (isEndpoint) {
+          this.changeMode('draw_line_string', {
+            featureId: featureId,
+            from: lineFeature.coordinates[vertexIndex],
+          });
+        }
       }
     }
   },
