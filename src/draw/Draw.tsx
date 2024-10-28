@@ -86,31 +86,30 @@ export const Draw = () => {
   };
 
   const lineStyles = [
-    {
-      id: 'gl-draw-line-inactive',
-      type: 'line',
-      filter: [
-        'all',
-        ['==', 'active', 'false'],
-        ['==', '$type', 'LineString'],
-        ['!=', 'mode', 'static'],
-      ],
-      layout: {
-        'line-cap': 'round',
-        'line-join': 'round',
-      },
-      paint: {
-        'line-color': '#04ffce',
-        'line-width': 14,
-      },
-    },
+    // {
+    //   id: 'gl-draw-line-inactive',
+    //   type: 'line',
+    //   filter: [
+    //     'all',
+    //     ['==', 'active', 'false'],
+    //     ['==', '$type', 'LineString'],
+    //     ['!=', 'mode', 'static'],
+    //   ],
+    //   layout: {
+    //     'line-cap': 'round',
+    //     'line-join': 'round',
+    //   },
+    //   paint: {
+    //     'line-color': '#04ffce',
+    //     'line-width': 14,
+    //   },
+    // },
     {
       id: 'gl-draw-line-active',
       type: 'line',
       filter: [
         'all',
         ['==', '$type', 'LineString'],
-        ['==', 'active', 'true'],
       ],
       layout: {
         'line-cap': 'round',
@@ -128,7 +127,6 @@ export const Draw = () => {
       filter: [
         'all',
         ['!=', 'meta', 'midpoint'],
-        // ['!=', 'mode', 'simple_select']
       ],
       paint: {
         'circle-radius': 6,

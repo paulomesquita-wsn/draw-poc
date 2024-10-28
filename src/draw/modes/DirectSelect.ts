@@ -1,6 +1,6 @@
-import { DrawCustomMode } from '@mapbox/mapbox-gl-draw';
+import MapboxDraw, { DrawCustomMode } from '@mapbox/mapbox-gl-draw';
 import { lineString, nearestPointOnLine, point } from '@turf/turf';
-import type mapboxgl from 'mapbox-gl';
+import mapboxgl from 'mapbox-gl';
 import { SnapDirectSelect } from "mapbox-gl-draw-snap-mode";
 
 class HoverPoint {
@@ -71,7 +71,7 @@ export const DirectSelect: DrawCustomMode = {
         }
       }
     };
-
+    
     state.onKeydown = deleteFeatureOnKeydown;
     window.addEventListener('keydown', state.onKeydown);    
 
@@ -87,17 +87,40 @@ export const DirectSelect: DrawCustomMode = {
   },
 
   onMouseDown(state, e) {
-    console.log('on mouse down', state, e)
-    return SnapDirectSelect.onMouseDown.call(this, state, e);
+    if (state.hoverPoint && state.hoverPoint.coordinate.length === 2) {
+      const featureId = e.featureTarget?.properties.id;
+      const lineFeature = this.getFeature(featureId);
+      if (lineFeature && lineFeature.type === 'LineString') {
+        const lineCoords = lineFeature.coordinates;
+        const hoverPointCoords = state.hoverPoint.coordinate;
+        
+        const insertIndex = nearestPointOnLine(lineString(lineCoords), point(hoverPointCoords)).properties.index;
+        state.feature.addCoordinate(insertIndex + 1, hoverPointCoords[0], hoverPointCoords[1]);
+
+        this.map.fire('draw.update', {
+          action: 'change_coordinates',
+          features: [state.feature],
+        });
+
+        this.map.dragPan.disable();
+        this.doRender(state.feature.id);
+        state.canDragMove = true;
+        state.dragMoveLocation = e.lngLat;
+        state.selectedCoordPaths = [`${insertIndex + 1}`];
+        return;
+      }
+    }
+
+    return MapboxDraw.modes.direct_select.onMouseDown.call(this, state, e);
   },
 
   onDrag: function (state: State, e) {
-    if(state.hoverPoint.coordinate) {
-      console.log(e)
-    }
-
     if (state.selectedCoordPaths.length > 0) {
-      SnapDirectSelect.onDrag.call(this, state, e);
+      if(state.hoverPoint && state.hoverPoint.coordinate.length === 2){
+        state.hoverPoint.set(null);
+      }
+      const result = SnapDirectSelect.onDrag.call(this, state, e);
+      return result;
     }
   },
 
@@ -128,14 +151,13 @@ export const DirectSelect: DrawCustomMode = {
   },
 
   onClick: function (state: State, e) {
-    console.log('onClick', state, e)
     const isVertex = e.featureTarget?.properties?.meta === 'vertex';
 
     if (isVertex) {
       const featureId = e.featureTarget.properties.parent || e.featureTarget.properties.id;
       const vertexIndex = parseInt(e.featureTarget.properties.coord_path.split('.').pop(), 10);
       const lineFeature = this.getFeature(featureId);
-  
+
       if (lineFeature && lineFeature.type === 'LineString') {
         const isEndpoint = vertexIndex === 0 || vertexIndex === lineFeature.coordinates.length - 1;
   
