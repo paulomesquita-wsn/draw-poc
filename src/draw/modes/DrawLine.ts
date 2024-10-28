@@ -1,11 +1,7 @@
 import type { DrawCustomMode } from "@mapbox/mapbox-gl-draw";
-import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import {
   SnapLineMode,
 } from "mapbox-gl-draw-snap-mode";
-const {
-  geojsonTypes,
-} = MapboxDraw.constants;
 
 export const DrawLine: DrawCustomMode = {
   ...SnapLineMode,
@@ -87,7 +83,7 @@ export const DrawLine: DrawCustomMode = {
   if (pointIsOnTheScreen) {
     if(state.currentVertexPosition === 0 && state.direction === 'backwards'){
       state.vertices = [{lng, lat}, ...state.vertices];
-      const newCoordinates = [[lng, lat], ...state.line.coordinates];
+      const newCoordinates = [[lng, lat], [lng, lat], ...state.line.coordinates];
       state.line.setCoordinates(newCoordinates);
     }else{
       state.vertices.push({ lng, lat });

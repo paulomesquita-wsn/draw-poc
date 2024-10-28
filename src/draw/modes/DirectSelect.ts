@@ -159,14 +159,14 @@ export const DirectSelect: DrawCustomMode = {
       const lineFeature = this.getFeature(featureId);
 
       if (lineFeature && lineFeature.type === 'LineString') {
-        const isEndpoint = vertexIndex === 0 || vertexIndex === lineFeature.coordinates.length - 1;
+        // const isEndpoint = vertexIndex === 0 || vertexIndex === lineFeature.coordinates.length - 1;
   
-        if (isEndpoint) {
+        // if (isEndpoint) {
           this.changeMode('draw_line_string', {
             featureId: featureId,
             from: lineFeature.coordinates[vertexIndex],
           });
-        }
+        // }
       }
     }
   },
