@@ -4,8 +4,8 @@
     "jsx": "react",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
-    "module": "ES2020",
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
     "sourceMap": true
   }
 }

@@ -66,31 +66,31 @@ export const DrawLine: DrawCustomMode = {
     const lng = state.snappedLng;
     const lat = state.snappedLat;
 
-  if (state.currentVertexPosition > 0) {
-    const lastVertex = state.line.coordinates[state.currentVertexPosition - 1];
+    if (state.currentVertexPosition > 0) {
+      const lastVertex = state.line.coordinates[state.currentVertexPosition - 1];
 
-    state.lastVertex = lastVertex;
+      state.lastVertex = lastVertex;
 
-    if (lastVertex[0] === lng && lastVertex[1] === lat) {
-      return this.changeMode('simple_select', {
-        featureIds: [state.line.id],
-      });
+      if (lastVertex[0] === lng && lastVertex[1] === lat) {
+        return this.changeMode('simple_select', {
+          featureIds: [state.line.id],
+        });
+      }
+    }
+    const { x, y } = state.map.project({lng, lat});
+    const { width: w, height: h } = state.map.getCanvas();
+    const pointIsOnTheScreen = x > 0 && x < w && y > 0 && y < h;
+    if (pointIsOnTheScreen) {
+      if(state.currentVertexPosition === 0 && state.direction === 'backwards'){
+        state.vertices = [{lng, lat}, ...state.vertices];
+        const newCoordinates = [[lng, lat], [lng, lat], ...state.line.coordinates];
+        state.line.setCoordinates(newCoordinates);
+      }else{
+        state.vertices.push({ lng, lat });
+        state.line.updateCoordinate(state.currentVertexPosition, lng, lat);
+        state.currentVertexPosition++;
+        state.line.updateCoordinate(state.currentVertexPosition, lng, lat);
+      }
     }
   }
-  const { x, y } = state.map.project({lng, lat});
-  const { width: w, height: h } = state.map.getCanvas();
-  const pointIsOnTheScreen = x > 0 && x < w && y > 0 && y < h;
-  if (pointIsOnTheScreen) {
-    if(state.currentVertexPosition === 0 && state.direction === 'backwards'){
-      state.vertices = [{lng, lat}, ...state.vertices];
-      const newCoordinates = [[lng, lat], [lng, lat], ...state.line.coordinates];
-      state.line.setCoordinates(newCoordinates);
-    }else{
-      state.vertices.push({ lng, lat });
-      state.line.updateCoordinate(state.currentVertexPosition, lng, lat);
-      state.currentVertexPosition++;
-      state.line.updateCoordinate(state.currentVertexPosition, lng, lat);
-    }
-  }
-}
 }
