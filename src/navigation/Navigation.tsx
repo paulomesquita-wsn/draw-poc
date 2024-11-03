@@ -6,23 +6,15 @@ import { useWaypoints } from '../atoms/waypoints';
 
 const INTERACTION_LAYER = 'route-interaction';
 
-type Coordinate = [number, number];
-
 export const Navigation = () => {
   const { data, error, isLoading } = useNavigation();
-  const [waypoints, addWaypoints] = useWaypoints();
+  const { waypoints, addWaypoint } = useWaypoints();
 
   const [hoveredRoutePoint, setHoveredRoutePoint] = useState<{lng: number, lat: number, legIndex: number} | null>(null);
   const isDraggingHoverRoutePoint = useRef(false);
 
   const {current: mapRef} = useMap();
   const map = mapRef.getMap();
-
-  
-  // useEffect(()=> {
-  //   console.log('data', data);
-  // }, [data])
-
 
   const handleMouseLeave = () => {
     if(!isDraggingHoverRoutePoint.current){
@@ -31,7 +23,7 @@ export const Navigation = () => {
   };
 
   const handleMouseMove = (e) => {
-    if(isDraggingHoverRoutePoint.current) return;
+    if(isDraggingHoverRoutePoint.current && hoveredRoutePoint) return;
 
     const features = map.queryRenderedFeatures(e.point, {
       layers: [INTERACTION_LAYER],
@@ -43,7 +35,7 @@ export const Navigation = () => {
         const mousePoint = turf.point([e.lngLat.lng, e.lngLat.lat]);
         const nearestPoint = turf.nearestPointOnLine(turf.lineString(feature.geometry.coordinates), mousePoint);
         const nearestPointCoordinates = nearestPoint.geometry.coordinates;
-        // console.log('feature', feature)
+        // console.log('feature', feature.properties)
         setHoveredRoutePoint({
           lng: nearestPointCoordinates[0],
           lat: nearestPointCoordinates[1],
@@ -56,8 +48,7 @@ export const Navigation = () => {
   }
 
   const handleDragEnd = (e) => {
-    console.log('drag end', hoveredRoutePoint.legIndex, [hoveredRoutePoint.lng, hoveredRoutePoint.lat], [e.lngLat.lng, e.lngLat.lat]);
-    addWaypoints({index: hoveredRoutePoint.legIndex, coordinates: data.legs[hoveredRoutePoint.legIndex]}, [hoveredRoutePoint.lng, hoveredRoutePoint.lat], [e.lngLat.lng, e.lngLat.lat]);
+    addWaypoint({index: hoveredRoutePoint.legIndex, coordinates: data.legs[hoveredRoutePoint.legIndex]}, [hoveredRoutePoint.lng, hoveredRoutePoint.lat], [e.lngLat.lng, e.lngLat.lat]);
     setHoveredRoutePoint(null);
   }
 

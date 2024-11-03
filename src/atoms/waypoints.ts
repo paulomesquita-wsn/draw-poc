@@ -1,7 +1,6 @@
 import { useMap } from "react-map-gl";
 import { atom, useRecoilState } from "recoil";
 import * as turf from "@turf/turf";
-import { useNavigation } from "../navigation/useNavigation";
 
 type Coordinate = [number, number];
 type Waypoints = {[featureId: string]: Coordinate[]};
@@ -11,12 +10,12 @@ export const waypointsState = atom<Waypoints>({
   default: {},
 });
 
-export const useWaypoints = (): [Waypoints, (leg: {index: number; coordinates: Coordinate[]}, dragStart: Coordinate, value: Coordinate) => void] => {
+export const useWaypoints = () => {
   const [waypoints, setWaypoints] = useRecoilState(waypointsState);
   const { current: mapRef } = useMap();
   const map = mapRef.getMap();
   
-  const addWaypoints = (leg: {index: number;coordinates: Coordinate[]}, dragStart: Coordinate, dragEnd: Coordinate) => {
+  const addWaypoint = (leg: {index: number;coordinates: Coordinate[]}, dragStart: Coordinate, dragEnd: Coordinate) => {
     if (!map) return;
 
     const line = turf.lineString(leg.coordinates);
@@ -32,11 +31,17 @@ export const useWaypoints = (): [Waypoints, (leg: {index: number; coordinates: C
       return;
     }
 
-    for(const pointIndex in waypoints[leg.index] || []) {
-      const point = waypoints[leg.index][pointIndex];
+    const currentLegWaypoints = [...waypoints[leg.index]];
+    for(const pointIndex in currentLegWaypoints || []) {
+      const point = currentLegWaypoints[pointIndex];
       const pointDistance = turf.length(turf.lineSlice(turf.getCoords(line)[0], point, line));
       if(pointDistance > distanceNewPoint) {
-        newFeaturePoints = waypoints[leg.index].splice(+pointIndex, 0, dragEnd);
+        newFeaturePoints = [
+          ...currentLegWaypoints.slice(0, +pointIndex),
+          dragEnd,
+          ...currentLegWaypoints.slice(+pointIndex),
+        ];
+        break;
       }
     }
 
@@ -50,5 +55,5 @@ export const useWaypoints = (): [Waypoints, (leg: {index: number; coordinates: C
     }));
   }
 
-  return [waypoints, addWaypoints];
+  return {waypoints, setWaypoints, addWaypoint};
 }

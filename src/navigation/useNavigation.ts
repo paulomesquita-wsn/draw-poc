@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { useStops } from '../atoms/stops';
 import { useMemo } from 'react';
 import { useWaypoints } from '../atoms/waypoints';
+import * as turf from '@turf/turf';
 
 const GEOJSON_BY_LEGS_QUERY = gql`
   query GeojsonByLegs($params: APIByLegsInput!) {
@@ -35,7 +36,7 @@ const makePoint = (coordinates, type: 'STOP' | 'WAYPOINT') => {
     "type": "Feature",
     "geometry":  {
       "type": "Point",
-      "coordinates": coordinates
+      "coordinates": [+coordinates[0].toFixed(6), +coordinates[1].toFixed(6)],
     },
     "properties": {
       "waypointType": type,
@@ -50,7 +51,7 @@ const fetcher = async(params: [string, Record<string, unknown>]) => {
 
 export const useNavigation = () => {
   const [stops] = useStops();
-  const [waypoints] = useWaypoints();
+  const {waypoints, setWaypoints} = useWaypoints();
 
   const params = useMemo(()=> {
     const legs = stops?.map((stop, i) => {
@@ -68,13 +69,11 @@ export const useNavigation = () => {
     }
   }, [stops, waypoints]); 
 
-
-  const { data, error } = useSWR(stops.length >= 2 ? [GEOJSON_BY_LEGS_QUERY, { params }] : null, async(params) => {
-    const response = await fetcher(params);
+  const getLegsFromFeatures = (features) => {
     const legs: [number, number][][] = [];
 
-    // Get all points from each leg
-    for(const feature of response.features) {
+    // Create a line string for each leg making sure we're not repeating points
+    for(const feature of features) {
       if(feature.geometry.type !== 'LineString') return;
       const legIndex = feature.properties.legIndex;
       if(!legs[legIndex]) legs[legIndex] = [];
@@ -88,6 +87,27 @@ export const useNavigation = () => {
       }
       legs[legIndex] = leg.concat(coordinates);
     }
+    return legs;
+  }
+
+  const { data, error } = useSWR(stops.length >= 2 ? [GEOJSON_BY_LEGS_QUERY, { params }] : null, async(params) => {
+    const response = await fetcher(params);
+    const legs = getLegsFromFeatures(response.features);
+
+    // fix waypoints to be inside new line
+    const newWaypoints = {};
+    for(const legIndex in legs) {
+      newWaypoints[legIndex] = [];
+      const leg = legs[+legIndex];
+      const legLine = turf.lineString(leg);
+      const waypointsOnLeg = waypoints[+legIndex] || [];
+      for(const waypoint of waypointsOnLeg) {
+        const nearestPoint = turf.nearestPointOnLine(legLine, turf.point(waypoint));
+        newWaypoints[legIndex].push(nearestPoint.geometry.coordinates);
+      }
+    }
+
+    setWaypoints(newWaypoints);
 
     return {
       geojson: response,

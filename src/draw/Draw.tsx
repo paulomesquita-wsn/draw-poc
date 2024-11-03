@@ -43,9 +43,9 @@ export const Draw = () => {
 
   const {current: mapRef} = useMap();
 
-  // React.useEffect(()=> {
-  //   console.log('features', features)
-  // }, [features])
+  React.useEffect(()=> {
+    console.log('features', features)
+  }, [features])
 
   const showMapSources = async() => {
     const map = mapRef.getMap();
