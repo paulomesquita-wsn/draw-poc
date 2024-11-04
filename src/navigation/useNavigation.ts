@@ -6,6 +6,8 @@ import { useWaypoints } from '../atoms/waypoints';
 import * as turf from '@turf/turf';
 import { useRecoilState } from 'recoil';
 import { drawFeaturesState } from '../atoms/draw';
+import { navigationState } from '../atoms/navigation';
+import { useRouteModifiers } from './useRouteModifiers';
 
 const GEOJSON_BY_LEGS_QUERY = gql`
   query GeojsonByLegs($params: APIByLegsInput!) {
@@ -33,12 +35,13 @@ const GEOJSON_BY_LEGS_QUERY = gql`
   }
 `;
 
-const makePoint = (coordinates, type: 'STOP' | 'WAYPOINT') => {
+const makeFeature = (coordinates, type: 'STOP' | 'WAYPOINT') => {
+  const isLine = Array.isArray(coordinates[0]);
   return {
     "type": "Feature",
     "geometry":  {
-      "type": "Point",
-      "coordinates": [+coordinates[0].toFixed(6), +coordinates[1].toFixed(6)],
+      "type": isLine ? 'LineString' : "Point",
+      "coordinates": isLine ? coordinates.map(coord => ([+coord[0].toFixed(6), +coord[1].toFixed(6)])) : [+coordinates[0].toFixed(6), +coordinates[1].toFixed(6)],
     },
     "properties": {
       "waypointType": type,
@@ -52,18 +55,20 @@ const fetcher = async(params: [string, Record<string, unknown>]) => {
 }
 
 export const useNavigation = () => {
+  const [, setNavigation] = useRecoilState(navigationState)
+  const routeModifiers = useRouteModifiers();
   const [stops] = useStops();
-  const {waypoints, setWaypoints} = useWaypoints();
-  const [draws] = useRecoilState(drawFeaturesState);
+  const { waypoints, setWaypoints } = useWaypoints();
 
   const params = useMemo(()=> {
-    const formattedDraws = Object.values(draws).map(draw => ({type: draw.type, geometry: draw.geometry, properties: {}}));
     const legs = stops?.map((stop, i) => {
       if(i === stops.length - 1) return null;
-      const waypointsOnLeg = waypoints[i] || [];
-      const waypointsOnLegPoints = waypointsOnLeg.map(waypoint => makePoint([waypoint[0], waypoint[1]], 'WAYPOINT'));
+      const legModifiers = routeModifiers[i];
+      const legModifiersFilters = legModifiers?.map(lm => makeFeature(lm, 'WAYPOINT')) || [];
       const nextPoint = stops[i + 1];
-      return [makePoint([stop[1], stop[0]], 'STOP'), ...waypointsOnLegPoints, ...formattedDraws, makePoint([nextPoint[1], nextPoint[0]], 'STOP')];
+      const points = [makeFeature([stop[1], stop[0]], 'STOP'), ...legModifiersFilters, makeFeature([nextPoint[1], nextPoint[0]], 'STOP')];
+      return points;
+
     }).filter(leg => leg);
 
     
@@ -71,7 +76,7 @@ export const useNavigation = () => {
       transportMode: 'car',
       legs,
     }
-  }, [stops, waypoints, draws]); 
+  }, [stops, routeModifiers]); 
 
   const getLegsFromFeatures = (features) => {
     const legs: [number, number][][] = [];
@@ -119,10 +124,14 @@ export const useNavigation = () => {
       features: response.features.filter(feature => 'legIndex' in feature.properties),
     }
 
-    return {
+    const finalData = {
       geojson: filteredResponse,
       legs,
     }
+
+    setNavigation(finalData);
+
+    return finalData;
   });
 
   return {

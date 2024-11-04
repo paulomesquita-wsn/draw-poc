@@ -3,7 +3,7 @@ import { atom, useRecoilState } from "recoil";
 import * as turf from "@turf/turf";
 
 type Coordinate = [number, number];
-type Waypoints = {[featureId: string]: Coordinate[]};
+type Waypoints = {[lineIndex: string]: Coordinate[]};
 
 export const waypointsState = atom<Waypoints>({
   key: 'waypointsState',
@@ -15,7 +15,7 @@ export const useWaypoints = () => {
   const { current: mapRef } = useMap();
   const map = mapRef.getMap();
   
-  const addWaypoint = (leg: {index: number;coordinates: Coordinate[]}, dragStart: Coordinate, dragEnd: Coordinate) => {
+  const addWaypoint = (leg: {index: number; coordinates: Coordinate[]}, dragStart: Coordinate, dragEnd: Coordinate) => {
     if (!map) return;
 
     const line = turf.lineString(leg.coordinates);
@@ -55,5 +55,5 @@ export const useWaypoints = () => {
     }));
   }
 
-  return {waypoints, setWaypoints, addWaypoint};
+  return { waypoints, setWaypoints, addWaypoint };
 }

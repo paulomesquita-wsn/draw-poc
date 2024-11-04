@@ -4,7 +4,7 @@ import { atom } from "recoil";
 export type DrawMode = 'simple_select' | 'direct_select' | 'draw_line_string' | 'cut'
 
 export const drawModeState = atom<DrawMode>({
-  key: 'drawmodeState',
+  key: 'drawModeState',
   default: 'simple_select',
 });
 
