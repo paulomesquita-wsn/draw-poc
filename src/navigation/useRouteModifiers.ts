@@ -12,10 +12,10 @@ export const useRouteModifiers = () => {
   const [ draws ] = useRecoilState(drawFeaturesState);
 
   const drawsPerLeg = useMemo(() => {
-    console.log('draws Per Leg')
     // check by the coordinates of the draw linestring on which leg does it intersect
     const result: {[legIndex: number]: MapboxDraw.DrawFeature[]} = {};
     for(const draw of Object.values(draws)){
+      if(!('geometry' in draw)) continue;
       if(draw.geometry.type !== 'LineString') continue;
       for(let i = 0; i < navigation.legs.length; i++){
         if(!(i in result)){
@@ -43,8 +43,8 @@ export const useRouteModifiers = () => {
       const sorted = modifiers.sort((a, b) => {
         const pointA = Array.isArray(a[0]) ? a[0] : a;
         const pointB = Array.isArray(b[0]) ? b[0] : b;
-        const distanceA = turf.length(turf.lineSlice(turf.getCoords(line)[0], pointA, line));
-        const distanceB = turf.length(turf.lineSlice(turf.getCoords(line)[0], pointB, line));
+        const distanceA = turf.length(turf.lineSlice(turf.getCoords(line)[0], pointA as [number, number], line));
+        const distanceB = turf.length(turf.lineSlice(turf.getCoords(line)[0], pointB as [number, number], line));
         return distanceA - distanceB;
       });
       result[i] = sorted;

@@ -93,15 +93,12 @@ export const DirectSelect: DrawCustomMode = {
       if (lineFeature && lineFeature.type === 'LineString') {
         const lineCoords = lineFeature.coordinates;
         const hoverPointCoords = state.hoverPoint.coordinate;
-        
         const insertIndex = nearestPointOnLine(lineString(lineCoords), point(hoverPointCoords)).properties.index;
         state.feature.addCoordinate(insertIndex + 1, hoverPointCoords[0], hoverPointCoords[1]);
-
-        this.map.fire('draw.update', {
-          action: 'change_coordinates',
-          features: [state.feature],
-        });
-
+        // this.map.fire('draw.update', {
+        //   action: 'change_coordinates',
+        //   features: [state.feature],
+        // });
         this.map.dragPan.disable();
         this.doRender(state.feature.id);
         state.canDragMove = true;

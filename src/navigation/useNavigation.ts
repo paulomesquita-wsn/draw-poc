@@ -37,11 +37,12 @@ const GEOJSON_BY_LEGS_QUERY = gql`
 
 const makeFeature = (coordinates, type: 'STOP' | 'WAYPOINT') => {
   const isLine = Array.isArray(coordinates[0]);
+
   return {
     "type": "Feature",
     "geometry":  {
       "type": isLine ? 'LineString' : "Point",
-      "coordinates": isLine ? coordinates.map(coord => ([+coord[0].toFixed(6), +coord[1].toFixed(6)])) : [+coordinates[0].toFixed(6), +coordinates[1].toFixed(6)],
+      "coordinates": isLine ? [coordinates[0], coordinates[coordinates.length - 1]].map(coord => ([+coord[0].toFixed(6), +coord[1].toFixed(6)])) : [+coordinates[0].toFixed(6), +coordinates[1].toFixed(6)],
     },
     "properties": {
       "waypointType": type,
