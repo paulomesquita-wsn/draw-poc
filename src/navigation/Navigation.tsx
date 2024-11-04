@@ -13,11 +13,7 @@ export const Navigation = () => {
   
   const { data, error, isLoading } = useNavigation();
   const { waypoints, addWaypoint } = useWaypoints();
-
-  useEffect(()=> {
-    console.log('data', data)
-  }, [data])
-
+  
   const [hoveredRoutePoint, setHoveredRoutePoint] = useState<{lng: number, lat: number, legIndex: number} | null>(null);
   const isDraggingHoverRoutePoint = useRef(false);
 

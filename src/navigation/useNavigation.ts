@@ -114,8 +114,13 @@ export const useNavigation = () => {
 
     setWaypoints(newWaypoints);
 
+    const filteredResponse = {
+      ...response,
+      features: response.features.filter(feature => 'legIndex' in feature.properties),
+    }
+
     return {
-      geojson: response,
+      geojson: filteredResponse,
       legs,
     }
   });

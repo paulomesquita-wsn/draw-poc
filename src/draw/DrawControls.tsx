@@ -39,10 +39,7 @@ export const Controls = ({draw}: Props) => {
       <div className='flex gap-1'>
         <button className={clsx('bg-slate-300 w-8 h-8', {'!bg-black text-white': mode === 'draw_line_string'})} onClick={()=> setMode('draw_line_string')}>D</button>
         <button className={clsx('bg-slate-300 w-8 h-8', {'!bg-black text-white': mode?.endsWith('select')})} onClick={()=> setMode('simple_select')}>M</button>
-        <button className={clsx('bg-slate-300 w-8 h-8', {'!bg-black text-white': mode === 'cut'})} onClick={()=> setMode('cut')}>C</button>
-        <button className='bg-slate-300 w-8 h-8'>N</button>
-        <button className='bg-slate-300 w-8 h-8'>L</button>
-        <button className='bg-slate-300 w-8 h-8'>R</button>
+        {/* <button className={clsx('bg-slate-300 w-8 h-8', {'!bg-black text-white': mode === 'cut'})} onClick={()=> setMode('cut')}>C</button> */}
       </div>
     </div>
   )
