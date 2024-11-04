@@ -27,9 +27,9 @@ export default function App() {
           mapStyle="mapbox://styles/mapbox/satellite-v9"
           mapboxAccessToken={TOKEN}
         >
-          <Draw />
           <Stops />
           <Navigation />
+          <Draw />
         </Map>
       </PrimeReactProvider>
     </RecoilRoot>

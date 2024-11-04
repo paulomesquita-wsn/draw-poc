@@ -4,6 +4,8 @@ import { useStops } from '../atoms/stops';
 import { useMemo } from 'react';
 import { useWaypoints } from '../atoms/waypoints';
 import * as turf from '@turf/turf';
+import { useRecoilState } from 'recoil';
+import { drawFeaturesState } from '../atoms/draw';
 
 const GEOJSON_BY_LEGS_QUERY = gql`
   query GeojsonByLegs($params: APIByLegsInput!) {
@@ -52,14 +54,16 @@ const fetcher = async(params: [string, Record<string, unknown>]) => {
 export const useNavigation = () => {
   const [stops] = useStops();
   const {waypoints, setWaypoints} = useWaypoints();
+  const [draws] = useRecoilState(drawFeaturesState);
 
   const params = useMemo(()=> {
+    const formattedDraws = Object.values(draws).map(draw => ({type: draw.type, geometry: draw.geometry, properties: {}}));
     const legs = stops?.map((stop, i) => {
       if(i === stops.length - 1) return null;
       const waypointsOnLeg = waypoints[i] || [];
       const waypointsOnLegPoints = waypointsOnLeg.map(waypoint => makePoint([waypoint[0], waypoint[1]], 'WAYPOINT'));
       const nextPoint = stops[i + 1];
-      return [makePoint([stop[1], stop[0]], 'STOP'), ...waypointsOnLegPoints, makePoint([nextPoint[1], nextPoint[0]], 'STOP')];
+      return [makePoint([stop[1], stop[0]], 'STOP'), ...waypointsOnLegPoints, ...formattedDraws, makePoint([nextPoint[1], nextPoint[0]], 'STOP')];
     }).filter(leg => leg);
 
     
@@ -67,7 +71,7 @@ export const useNavigation = () => {
       transportMode: 'car',
       legs,
     }
-  }, [stops, waypoints]); 
+  }, [stops, waypoints, draws]); 
 
   const getLegsFromFeatures = (features) => {
     const legs: [number, number][][] = [];
@@ -75,17 +79,19 @@ export const useNavigation = () => {
     // Create a line string for each leg making sure we're not repeating points
     for(const feature of features) {
       if(feature.geometry.type !== 'LineString') return;
-      const legIndex = feature.properties.legIndex;
-      if(!legs[legIndex]) legs[legIndex] = [];
-      const leg = legs[legIndex];
-      let coordinates = feature.geometry.coordinates;
-      
-      if(leg.length > 0){
-        if(coordinates[0][0] === leg[leg.length - 1][0] && coordinates[0][1] === leg[leg.length - 1][1]) {
-          coordinates = coordinates.slice(1);
+      if('legIndex' in feature.properties) {
+        const legIndex = feature.properties.legIndex;
+        if(!legs[legIndex]) legs[legIndex] = [];
+        const leg = legs[legIndex];
+        let coordinates = feature.geometry.coordinates;
+        
+        if(leg.length > 0){
+          if(coordinates[0][0] === leg[leg.length - 1][0] && coordinates[0][1] === leg[leg.length - 1][1]) {
+            coordinates = coordinates.slice(1);
+          }
         }
-      }
-      legs[legIndex] = leg.concat(coordinates);
+        legs[legIndex] = leg.concat(coordinates);
+      } 
     }
     return legs;
   }
@@ -93,7 +99,6 @@ export const useNavigation = () => {
   const { data, error } = useSWR(stops.length >= 2 ? [GEOJSON_BY_LEGS_QUERY, { params }] : null, async(params) => {
     const response = await fetcher(params);
     const legs = getLegsFromFeatures(response.features);
-
     // fix waypoints to be inside new line
     const newWaypoints = {};
     for(const legIndex in legs) {

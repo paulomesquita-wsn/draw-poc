@@ -7,6 +7,8 @@ import { SimpleSelect } from './modes/SimpleSelect';
 import { DirectSelect } from './modes/DirectSelect';
 import { Cut } from './modes/Cut';
 import { DrawLine } from './modes/DrawLine';
+import { useRecoilState } from 'recoil';
+import { drawFeaturesState } from '../atoms/draw';
 
 type DrawControlProps = ConstructorParameters<typeof MapboxDraw>[0] & {
   position?: ControlPosition;
@@ -39,23 +41,7 @@ export function DrawControl(props: DrawControlProps) {
 }
 
 export const Draw = () => {
-  const [features, setFeatures] = useState<Record<string, DrawFeature>>({});
-
-  const {current: mapRef} = useMap();
-
-  React.useEffect(()=> {
-    console.log('features', features)
-  }, [features])
-
-  const showMapSources = async() => {
-    const map = mapRef.getMap();
-    if(map.isStyleLoaded()){
-      console.log('sources', map.getStyle().sources);
-    }
-      map.once('load', () => {
-        console.log('sources', map.getStyle().sources);
-      }); 
-  }
+  const [features, setFeatures] = useRecoilState(drawFeaturesState);
 
   const onUpdate = useCallback((e) => {
     setFeatures((currFeatures) => {
@@ -86,24 +72,6 @@ export const Draw = () => {
   };
 
   const lineStyles = [
-    // {
-    //   id: 'gl-draw-line-inactive',
-    //   type: 'line',
-    //   filter: [
-    //     'all',
-    //     ['==', 'active', 'false'],
-    //     ['==', '$type', 'LineString'],
-    //     ['!=', 'mode', 'static'],
-    //   ],
-    //   layout: {
-    //     'line-cap': 'round',
-    //     'line-join': 'round',
-    //   },
-    //   paint: {
-    //     'line-color': '#04ffce',
-    //     'line-width': 14,
-    //   },
-    // },
     {
       id: 'gl-draw-line-active',
       type: 'line',

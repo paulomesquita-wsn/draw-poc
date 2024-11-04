@@ -3,12 +3,20 @@ import { Layer, Marker, Source, useMap } from "react-map-gl";
 import { useNavigation } from "./useNavigation"
 import * as turf from "@turf/turf";
 import { useWaypoints } from '../atoms/waypoints';
+import { useRecoilState } from 'recoil';
+import { drawModeState } from '../atoms/draw';
 
-const INTERACTION_LAYER = 'route-interaction';
+export const INTERACTION_LAYER = 'route-interaction';
 
 export const Navigation = () => {
+  const [mode] = useRecoilState(drawModeState);
+  
   const { data, error, isLoading } = useNavigation();
   const { waypoints, addWaypoint } = useWaypoints();
+
+  useEffect(()=> {
+    console.log('data', data)
+  }, [data])
 
   const [hoveredRoutePoint, setHoveredRoutePoint] = useState<{lng: number, lat: number, legIndex: number} | null>(null);
   const isDraggingHoverRoutePoint = useRef(false);
@@ -35,7 +43,6 @@ export const Navigation = () => {
         const mousePoint = turf.point([e.lngLat.lng, e.lngLat.lat]);
         const nearestPoint = turf.nearestPointOnLine(turf.lineString(feature.geometry.coordinates), mousePoint);
         const nearestPointCoordinates = nearestPoint.geometry.coordinates;
-        // console.log('feature', feature.properties)
         setHoveredRoutePoint({
           lng: nearestPointCoordinates[0],
           lat: nearestPointCoordinates[1],
@@ -69,7 +76,7 @@ export const Navigation = () => {
   return (
     <>
       <Source id='navigation' type='geojson' data={data.geojson}>
-      <Layer
+        <Layer
           id={INTERACTION_LAYER}
           type="line"
           source="navigation"
@@ -114,7 +121,7 @@ export const Navigation = () => {
         <Marker
           longitude={hoveredRoutePoint.lng}
           latitude={hoveredRoutePoint.lat}
-          draggable
+          draggable={mode === 'simple_select'}
           onDragStart={(e) => {
             isDraggingHoverRoutePoint.current = true
           }}
@@ -137,8 +144,6 @@ export const Navigation = () => {
             latitude={waypoint[1]}
           >
             <div className='w-4 h-4 rounded-full bg-white border border-black' />
-          {/* <div className='w-14 h-14 flex justify-center items-center'>
-          </div> */}
         </Marker>
         )
       })}

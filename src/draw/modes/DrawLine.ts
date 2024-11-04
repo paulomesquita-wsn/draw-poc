@@ -2,6 +2,7 @@ import type { DrawCustomMode } from "@mapbox/mapbox-gl-draw";
 import {
   SnapLineMode,
 } from "mapbox-gl-draw-snap-mode";
+import { INTERACTION_LAYER } from "../../navigation/Navigation";
 
 export const DrawLine: DrawCustomMode = {
   ...SnapLineMode,
@@ -17,9 +18,14 @@ export const DrawLine: DrawCustomMode = {
     opts = opts || {};
     const featureId = opts.featureId;
 
+    const navigationData = this.map.getSource('navigation')?._data as GeoJSON.FeatureCollection;
+    
     if(!featureId){
       const state = SnapLineMode.onSetup.call(this, opts);
-      return state;
+      if(navigationData) {
+        state.snapList = [...state.snapList, ...(navigationData?.features || [])];
+      }
+      return { ...state };
     }
 
     let line, currentVertexPosition;
@@ -53,6 +59,9 @@ export const DrawLine: DrawCustomMode = {
       throw new Error('`from` should match the point at either the start or the end of the provided LineString');
     }
     const state = SnapLineMode.onSetup.call(this, opts);
+    if(navigationData) {
+      state.snapList = [...state.snapList, ...(navigationData?.features || [])];
+    }
     this.deleteFeature(state.line.id);
     return {...state, line, currentVertexPosition, direction };
   },
@@ -63,6 +72,14 @@ export const DrawLine: DrawCustomMode = {
     beggining of the line
   */
   onClick: function (state, e) {
+    const features = this.map.queryRenderedFeatures(e.point, {
+      layers: [INTERACTION_LAYER],
+    });
+    // If you start drawing from a place it's not a route, it should not add a new point
+    if(!features.length && state.currentVertexPosition === 0) {
+      return;
+    }
+
     const lng = state.snappedLng;
     const lat = state.snappedLat;
 
@@ -92,5 +109,5 @@ export const DrawLine: DrawCustomMode = {
         state.line.updateCoordinate(state.currentVertexPosition, lng, lat);
       }
     }
-  }
+  },
 }

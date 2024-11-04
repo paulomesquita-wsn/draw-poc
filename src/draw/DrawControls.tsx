@@ -2,13 +2,16 @@ import type MapboxDraw from '@mapbox/mapbox-gl-draw';
 import * as React from 'react';
 import { useMap } from 'react-map-gl';
 import {clsx} from 'clsx'
+import { useRecoilState } from 'recoil';
+import { drawModeState, type DrawMode } from '../atoms/draw';
 
 type Props = {
-  draw: MapboxDraw;
+  draw?: MapboxDraw;
 }
 
 export const Controls = ({draw}: Props) => {
-  const [mode, setMode] = React.useState<string>();
+  const mapLoaded = React.useRef(false);
+  const [mode, setMode] = useRecoilState(drawModeState);
   const {current: mapRef} = useMap();
   const map = mapRef.getMap();
 
@@ -17,14 +20,15 @@ export const Controls = ({draw}: Props) => {
       setMode(mode);
     });
     map.once('load', () => {
-      setMode(draw.getMode());
+      mapLoaded.current = true;
+      setMode(draw.getMode() as DrawMode);
     });
   }, []);
 
   React.useEffect(()=> {
-    if(!mode) return;
+    if(!mapLoaded.current) return;
     if(mode !== draw.getMode()){
-      draw.changeMode(mode);
+      draw.changeMode(mode as any);
     }
   }, [mode])
 
